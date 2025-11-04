@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<module>
+    <name>moovarle</name>
+    <displayName><![CDATA[moovarle]]></displayName>
+    <version><![CDATA[1.0.0]]></version>
+    <description><![CDATA[Varle.lt marketplace XML export]]></description>
+    <author><![CDATA[moonia]]></author>
+    <tab><![CDATA[advertising_marketing]]></tab>
+    <is_configurable>1</is_configurable>
+    <need_instance>0</need_instance>
+</module>

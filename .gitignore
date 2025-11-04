@@ -1,0 +1,19 @@
+# Build artifacts
+/dist/
+/pkg/
+*.zip
+*.tar.gz
+
+# PrestaShop caches
+/var/cache/
+/var/lock/
+
+# Node / Composer
+/node_modules/
+/vendor/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

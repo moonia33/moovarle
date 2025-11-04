@@ -1,0 +1,34 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare dist folder
+        run: |
+          mkdir -p dist
+          rsync -a --exclude 'dist' --exclude '.git' --exclude '.github' --exclude 'node_modules' --exclude 'vendor' --exclude 'var/cache' --exclude 'var/lock' ./ ./dist/moovarle/
+
+      - name: Create zip
+        run: |
+          cd dist
+          zip -r moovarle.zip moovarle
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/moovarle.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
