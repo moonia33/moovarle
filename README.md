@@ -1,5 +1,13 @@
 # moovarle
 
+<p>
+	<a href="https://github.com/moonia33/moovarle/releases/latest/download/moovarle.zip">
+		<img alt="Download moovarle.zip" src="https://img.shields.io/badge/Download-MOOVARLE.ZIP-2ea44f?style=for-the-badge"/>
+	</a>
+</p>
+
+Or use the direct link: [Download moovarle.zip (latest release)](https://github.com/moonia33/moovarle/releases/latest/download/moovarle.zip)
+
 Varle.lt marketplace XML export module for PrestaShop 1.7–8/9.
 
 - Generates XML exactly as per varle_xml_mp_(1a_2)_LT.xml:
