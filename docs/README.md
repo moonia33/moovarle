@@ -37,6 +37,33 @@ Varle.lt marketplace XML export module for PrestaShop 1.7–8/9.
 - Delivery time (text): `MOOVARLE_DELIVERY_DAYS`
 - Cron token: `MOOVARLE_CRON_TOKEN`
 
+### Category mapping (config + YAML)
+
+- Mapping file: `modules/moovarle/config/category_map.yaml` (list of entries).
+- Logic: deepest `id_category_default` is mapped to marketplace `<category>`.
+- Fallback when ID not present: `Apatinis trikotažas moterims`.
+- Breadcrumb levels (excluding Root/Home) emitted as `<attribute title="Tipas">OriginalName</attribute>`.
+
+Minimal entry:
+
+```
+- id_category: 60
+  marketplace_category: Pižamos ir naktiniai
+```
+
+Verbose entry (with source_category):
+
+```
+- id_category: 60
+  source_category: Aksesuarai
+  marketplace_category: Pižamos ir naktiniai
+```
+
+Notes:
+- Required: `id_category`, `marketplace_category`.
+- `source_category` optional (documentation only).
+- After edits, regenerate feed via cron with `reset=1` or BO button.
+
 ## Installation
 
 1. Download the latest release ZIP (contains a top-level `moovarle/` folder).
@@ -59,6 +86,8 @@ Varle.lt marketplace XML export module for PrestaShop 1.7–8/9.
 ## Notes
 
 - Only active products are exported; category breadcrumb skips Root/Home.
+- Categories: one mapped marketplace `<category>` using `modules/moovarle/config/category_map.yaml` (by `id_category_default`); unmapped IDs fallback to `Apatinis trikotažas moterims`.
+- Breadcrumb levels are also exported as `<attribute title="Tipas">OriginalName</attribute>` before product features.
 - Variant group title is forced to "Dydis"; variant price is always `0.00` (Varle requirement).
 - Barcodes are pulled from `ps_product_attribute` (EAN preferred, UPC fallback).
 - Generation is incremental: call cron multiple times until it returns `{status: "done"}` or use `loop=1` with a suitable `time` budget.
@@ -81,6 +110,11 @@ Varle.lt marketplace XML export module for PrestaShop 1.7–8/9.
 - `<price_old>` appears when discount is 0: update to v1.0.0+ (this release emits `<price_old>` only when global discount > 0).
 
 ## Changelog
+
+### v1.1.0
+
+- Category handling overhaul: single mapped category + breadcrumb attributes `Tipas`.
+- Fallback to `Apatinis trikotažas moterims` when ID not in YAML.
 
 ### v1.0.0
 

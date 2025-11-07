@@ -45,12 +45,39 @@ Varle.lt marketplace XML export module for PrestaShop 1.7–8/9.
 - Delivery time (text): `MOOVARLE_DELIVERY_DAYS`
 - Cron token: `MOOVARLE_CRON_TOKEN`
 
+### Category mapping (config + YAML)
+
+- Mapping failas: `modules/moovarle/config/category_map.yaml`
+- Paskirtis: pagal produkto giliausią „default“ kategoriją (`id_category_default`) parinkti VIENĄ marketplace kategoriją `<category>`.
+- Jei `id_category_default` nėra YAML’e – taikomas fallback: `Apatinis trikotažas moterims`.
+- Be to, kiekvienas breadcrumb lygis (be Root/Home) įdedamas kaip atskiras atributas: `<attribute title="Tipas">Originalus pavadinimas</attribute>`.
+
+Failo formatas (minimalus):
+
+```
+- id_category: 60
+	marketplace_category: Pižamos ir naktiniai
+```
+
+Pilnas (su informaciniu pavadinimu):
+
+```
+- id_category: 60
+	source_category: Aksesuarai
+	marketplace_category: Pižamos ir naktiniai
+```
+
+Pastabos:
+- Privalomi laukai: `id_category`, `marketplace_category`; `source_category` – tik informacinis.
+- Pakeitimai YAML faile įsigalioja regeneravus feed’ą (mygtukas „Regenerate export now“ arba cron su `reset=1`).
+
 ## Notes
 
 - Only active and in-stock products (quantity > 0) are included when a product has no variants; for products with variants, stock is specified per variant.
 - Prices include tax and apply the configured margin and (optional) global discount. Variant price is always 0.00 (Varle requirement).
 - `<price_old>` is emitted only when a positive global discount (%) is configured.
-- Categories are emitted as a single breadcrumb string via "Parent -> Child" in the first <category> entry.
+- Categories: single mapped marketplace category (`<category>`). Deepest default category ID is mapped through `modules/moovarle/config/category_map.yaml`; if ID not present, fallback is `Apatinis trikotažas moterims`.
+- Breadcrumb levels (excluding Root/Home) are also emitted as `<attribute title="Tipas">OriginalName</attribute>` before product feature attributes.
 - Generation is incremental: call cron endpoint multiple times until it returns `{status: "done"}` or use `loop=1` with a suitable `time` budget (e.g., `time=25`) to finish in one request if server timeouts allow it.
 
 ### Cache and applying new settings
@@ -62,3 +89,15 @@ Varle.lt marketplace XML export module for PrestaShop 1.7–8/9.
 ## Packaging
 
 This repo is packaged as a ZIP with a top-level `moovarle/` directory via GitHub Actions release workflow. The artifact can be installed via PrestaShop Module Manager.
+
+## Changelog
+
+### v1.1.0
+
+- Added category mapping & breadcrumb attributes (`Tipas`).
+- Fallback category when unmapped: `Apatinis trikotažas moterims`.
+- README updated to reflect new behavior.
+
+### v1.0.0
+
+- Initial public release.

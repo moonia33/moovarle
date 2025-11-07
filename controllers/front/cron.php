@@ -42,29 +42,27 @@ class moovarlecronModuleFrontController extends ModuleFrontController
     private function xmlElRaw($name,$value){ $v=trim((string)$value); return '<'.$name.'>'.$v.'</'.$name.'>'; }
     private function joinPath(array $parts){ $clean=array(); foreach($parts as $p){ $t=trim((string)$p); if($t!==''){ $clean[]=$t; } } return implode(' -> ',$clean); }
     private function buildCategoryPath($categoryId,$langId){
-        $name='';
+        // Returns an array of breadcrumb category names (excluding Root/Home) from top to deepest.
+        $list = array();
         if($categoryId){
-            $cat=new Category((int)$categoryId,$langId);
+            $cat = new Category((int)$categoryId,$langId);
             if(Validate::isLoadedObject($cat)){
-                $parents=$cat->getParentsCategories($langId);
-                $chain=array();
-                $homeId=(int)Configuration::get('PS_HOME_CATEGORY'); if($homeId<=0){ $homeId=2; }
+                $parents = $cat->getParentsCategories($langId);
+                $homeId = (int)Configuration::get('PS_HOME_CATEGORY'); if($homeId<=0){ $homeId=2; }
                 if(is_array($parents)){
                     foreach(array_reverse($parents) as $pc){
-                        // Skip Root (1) and Home (PS_HOME_CATEGORY) if present
                         $cid = isset($pc['id_category']) ? (int)$pc['id_category'] : 0;
                         if($cid<=1 || $cid===$homeId){ continue; }
-                        $nm=isset($pc['name'])?$pc['name']:''; if($nm!==''){ $chain[]=$nm; }
+                        $nm = isset($pc['name']) ? $pc['name'] : '';
+                        if($nm!==''){ $list[] = $nm; }
                     }
                 }
-                // If still empty and current category is not Home/Root, include its name
-                if(!$chain){
-                    if((int)$cat->id>1 && (int)$cat->id!==$homeId){ $chain[]=$cat->name; }
+                if(!$list){
+                    if((int)$cat->id>1 && (int)$cat->id!==$homeId){ $list[] = $cat->name; }
                 }
-                $name=$this->joinPath($chain);
             }
         }
-        return $name;
+        return $list;
     }
 
     private function getAllImageUrls($productId,$link,$linkRewrite){
@@ -193,14 +191,60 @@ class moovarlecronModuleFrontController extends ModuleFrontController
                 }
                 $price=number_format($priceVal,2,'.','');
                 $brand=''; if(!empty($row['id_manufacturer'])){ $man=new Manufacturer((int)$row['id_manufacturer'],$langId); $brand=(string)$man->name; }
-                $categoryPath=$this->buildCategoryPath((int)$row['id_category_default'],$langId);
+                $breadcrumb = $this->buildCategoryPath((int)$row['id_category_default'],$langId);
+                $deepestOriginal = end($breadcrumb);
+                $mappedCategory = null; // will be set via map or fallback string
+                // Category mapping load (YAML cached static)
+                static $catMap = null; if($catMap===null){
+                    $mapFile = _PS_MODULE_DIR_.'moovarle/config/category_map.yaml';
+                    $catMap = array();
+                    if(is_file($mapFile)){
+                        $raw = @file($mapFile, FILE_IGNORE_NEW_LINES|FILE_SKIP_EMPTY_LINES);
+                        if($raw){
+                            $current = array();
+                            foreach($raw as $ln){
+                                $trim = trim($ln);
+                                if($trim===''){ continue; }
+                                if(strpos($trim,'- ')===0){
+                                    if(!empty($current)){ // commit previous
+                                        if(isset($current['id_category']) && isset($current['marketplace_category'])){
+                                            $catMap[(int)$current['id_category']] = $current['marketplace_category'];
+                                        }
+                                    }
+                                    $current = array();
+                                    $trim = substr($trim,2); // remove '- '
+                                    // maybe inline key: value on first line
+                                    if(strpos($trim,':')!==false){
+                                        list($k,$v)=array_map('trim', explode(':',$trim,2));
+                                        if($k!==''){ $current[$k]=$v; }
+                                    }
+                                } elseif(strpos($trim,':')!==false){
+                                    list($k,$v)=array_map('trim', explode(':',$trim,2));
+                                    if($k!==''){ $current[$k]=$v; }
+                                }
+                            }
+                            if(!empty($current) && isset($current['id_category']) && isset($current['marketplace_category'])){
+                                $catMap[(int)$current['id_category']] = $current['marketplace_category'];
+                            }
+                        }
+                    }
+                }
+                // Attempt mapping by id_category_default first (look up full object id)
+                $mappedId = (int)$row['id_category_default'];
+                if(isset($catMap[$mappedId])){ 
+                    $mappedCategory = $catMap[$mappedId]; 
+                } else {
+                    // Explicit fallback when id not present in YAML
+                    $mappedCategory = 'Apatinis trikotažas moterims';
+                }
+
                 $features=$prodObj->getFrontFeatures($langId);
 
                 $xml = "    <product>\n";
                 $xml.= '      '.$this->xmlElRaw('id',$productId)."\n";
-                // Categories
+                // Categories: emit single deepest mapped category
                 $xml.= "      <categories>\n";
-                if($categoryPath!==''){ $xml.='        '.$this->xmlElCdata('category',$categoryPath)."\n"; }
+                if($mappedCategory && $mappedCategory!==''){ $xml.='        '.$this->xmlElCdata('category',$mappedCategory)."\n"; }
                 $xml.= "      </categories>\n";
                 $xml.= '      '.$this->xmlElCdata('title',$row['name'])."\n";
                 $descHtml=(string)$prodObj->description; if($descHtml===''){ $descHtml=(string)$row['description_short']; }
@@ -263,11 +307,15 @@ class moovarlecronModuleFrontController extends ModuleFrontController
                 if(!empty($row['reference'])){ $xml.='      '.$this->xmlElCdata('model',$row['reference'])."\n"; }
                 $xml.='      '.$this->xmlElRaw('weight',number_format(0.3,3,'.',''))."\n";
                 if($brand!==''){ $xml.='      '.$this->xmlElCdata('manufacturer',$brand)."\n"; }
-                if(!empty($features)){
-                    $xml.="      <attributes>\n";
-                    foreach($features as $f){ $n=trim((string)$f['name']); $v=trim((string)$f['value']); if($n===''||$v===''){continue;} $title=htmlspecialchars($n,ENT_XML1|ENT_COMPAT,'UTF-8'); $xml.='        <attribute title="'.$title.'">'.$this->cdata($v).'</attribute>'."\n"; }
-                    $xml.="      </attributes>\n";
+                // Attributes: add category breadcrumb as individual attributes first
+                $xml.="      <attributes>\n";
+                foreach($breadcrumb as $crumb){
+                    $xml.='        <attribute title="Tipas">'.$this->cdata($crumb).'</attribute>'."\n";
                 }
+                if(!empty($features)){
+                    foreach($features as $f){ $n=trim((string)$f['name']); $v=trim((string)$f['value']); if($n===''||$v===''){continue;} $title=htmlspecialchars($n,ENT_XML1|ENT_COMPAT,'UTF-8'); $xml.='        <attribute title="'.$title.'">'.$this->cdata($v).'</attribute>'."\n"; }
+                }
+                $xml.="      </attributes>\n";
 
                 // Emit price_old only when discount is applied
                 if($discount>0 && $oldPrice!==''){
