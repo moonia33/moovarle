@@ -78,6 +78,7 @@ Pastabos:
 - `<price_old>` is emitted only when a positive global discount (%) is configured.
 - Categories: single mapped marketplace category (`<category>`). Deepest default category ID is mapped through `modules/moovarle/config/category_map.yaml`; if ID not present, fallback is `Apatinis trikotažas moterims`.
 - Breadcrumb levels (excluding Root/Home) are also emitted as `<attribute title="Tipas">OriginalName</attribute>` before product feature attributes.
+ - Variant barcode: if variant EAN is missing, a synthetic 13-digit code is generated from `id_product_attribute` + `reference` (digits only), padding with zeros or trimming from the end to reach 13 digits.
 - Generation is incremental: call cron endpoint multiple times until it returns `{status: "done"}` or use `loop=1` with a suitable `time` budget (e.g., `time=25`) to finish in one request if server timeouts allow it.
 
 ### Cache and applying new settings
@@ -91,6 +92,10 @@ Pastabos:
 This repo is packaged as a ZIP with a top-level `moovarle/` directory via GitHub Actions release workflow. The artifact can be installed via PrestaShop Module Manager.
 
 ## Changelog
+
+### v1.1.1
+
+- Variants without EAN now get a synthetic 13-digit barcode (id_product_attribute + reference digits; pad/cut to 13). No DB writes; affects export only.
 
 ### v1.1.0
 

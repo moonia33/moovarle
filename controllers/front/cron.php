@@ -3,6 +3,20 @@ if (!defined('_PS_VERSION_')) { exit; }
 
 class moovarlecronModuleFrontController extends ModuleFrontController
 {
+    private function generateSyntheticEanForVariant(int $ipa, string $reference): string {
+        // Build numeric string: id_product_attribute + reference (digits only)
+        $refDigits = preg_replace('/\D+/', '', (string)$reference);
+        $base = (string)$ipa . ($refDigits ?? '');
+        if($base === ''){ $base = (string)$ipa; }
+        // Normalize to 13 digits: pad zeros to the right if too short; cut from the end if too long
+        $len = strlen($base);
+        if($len < 13){
+            $base = str_pad($base, 13, '0', STR_PAD_RIGHT);
+        } elseif($len > 13){
+            $base = substr($base, 0, 13);
+        }
+        return $base;
+    }
     private function cfg($key, $default = null){
         // Prefer shop-scoped value via PS API
         $shopId = (int)$this->context->shop->id;
@@ -294,8 +308,15 @@ class moovarlecronModuleFrontController extends ModuleFrontController
                         $xml.='        <variant group_title="'.htmlspecialchars($groupTitle,ENT_XML1|ENT_COMPAT,'UTF-8').'">' . "\n";
                         $xml.='          '.$this->xmlElCdata('title',$title)."\n";
                         $xml.='          '.$this->xmlElRaw('quantity',$qty)."\n";
-                        // Always include barcode field (may be empty)
-                        $barcodeVal = ($ean!=='') ? $ean : (($upc!=='') ? $upc : '');
+                        // Barcode for variants:
+                        // - If EAN present, use it
+                        // - Else synthesize from id_product_attribute + reference (digits only), pad/cut to 13
+                        $barcodeVal = '';
+                        if($ean !== ''){
+                            $barcodeVal = $ean;
+                        } else {
+                            $barcodeVal = $this->generateSyntheticEanForVariant((int)$ipa, (string)$ref);
+                        }
                         $xml.='          '.$this->xmlElRaw('barcode',$barcodeVal)."\n";
                         $xml.='          '.$this->xmlElRaw('price',$deltaStr)."\n";
                         $xml.='        </variant>' . "\n";

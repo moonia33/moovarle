@@ -88,6 +88,7 @@ Notes:
 - Only active products are exported; category breadcrumb skips Root/Home.
 - Categories: one mapped marketplace `<category>` using `modules/moovarle/config/category_map.yaml` (by `id_category_default`); unmapped IDs fallback to `Apatinis trikotažas moterims`.
 - Breadcrumb levels are also exported as `<attribute title="Tipas">OriginalName</attribute>` before product features.
+ - Variants without EAN: exporter synthesizes a 13-digit code from `id_product_attribute` + `reference` (digits only), padding zeros or trimming from the end to reach 13.
 - Variant group title is forced to "Dydis"; variant price is always `0.00` (Varle requirement).
 - Barcodes are pulled from `ps_product_attribute` (EAN preferred, UPC fallback).
 - Generation is incremental: call cron multiple times until it returns `{status: "done"}` or use `loop=1` with a suitable `time` budget.

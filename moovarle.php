@@ -7,7 +7,7 @@ class Moovarle extends Module
     {
         $this->name = 'moovarle';
         $this->tab = 'advertising_marketing';
-    $this->version = '1.1.0';
+    $this->version = '1.1.1';
         $this->author = 'moonia';
         $this->need_instance = 0;
         $this->ps_versions_compliancy = ['min' => '1.7.0.0', 'max' => _PS_VERSION_];
